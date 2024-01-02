@@ -54,16 +54,6 @@ int configureProject(const std::string& projectDir, const std::string& buildDir)
         std::cerr << "CMake configuration failed." << std::endl;
     }
 
-    // Build the project using make
-    std::string makeCommand = "make -C " + buildDir;
-    int makeResult = std::system(makeCommand.c_str());
-
-    if (makeResult != 0) {
-        std::cerr << "Build failed." << std::endl;
-        return makeResult;
-    }
-
-
     return result;
 }
 
@@ -71,7 +61,8 @@ int configureProject(const std::string& projectDir, const std::string& buildDir)
 int runStaticAnalyzer(const std::string buildDir, const std::string executableName)
 {
     // Run Clang Static Analyzer on the executable
-    std::string scanBuildCommand = "scan-build -o "  + buildDir + "make -C " + buildDir;;
+    std::string scanBuildCommand = "cd " + buildDir + " && " + "scan-build -o "  + buildDir+"/scan-build-output "  + \
+                                    " --use-analyzer=/usr/bin/clang " +  "make";
     int scanBuildResult = std::system(scanBuildCommand.c_str());
 
     if (scanBuildResult == 0) {
