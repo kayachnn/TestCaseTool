@@ -8,6 +8,10 @@
 #include "clang/Frontend/TextDiagnosticPrinter.h"
 #include "llvm/Support/CommandLine.h"
 
+#include <iostream>
+#include "clang/Tooling/Tooling.h"
+#include "clang/Tooling/CommonOptionsParser.h"
+
 using namespace clang;
 using namespace clang::tooling;
 using namespace llvm;
