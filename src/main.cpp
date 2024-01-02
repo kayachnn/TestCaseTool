@@ -1,7 +1,29 @@
 #include <cstdlib>
 #include <iostream>
+#include <regex>
+#include <fstream>
 
-extern int runClangTool(const std::string& buildDir);
+// Function to extract the executable name from CMakeLists.txt
+std::string getExecutableName(const std::string& cmakeListsPath) {
+    std::ifstream cmakeListsFile(cmakeListsPath);
+
+    if (!cmakeListsFile.is_open()) {
+        std::cerr << "Failed to open CMakeLists.txt file." << std::endl;
+        return "";
+    }
+
+    std::regex targetNameRegex(R"(add_executable\((\S+))");
+    std::smatch match;
+
+    for (std::string line; std::getline(cmakeListsFile, line);) {
+        if (std::regex_search(line, match, targetNameRegex)) {
+            return match[1].str();
+        }
+    }
+
+    std::cerr << "Failed to extract executable name from CMakeLists.txt." << std::endl;
+    return "";
+}
 
 int configureProject(const std::string& projectDir, const std::string& buildDir) {
     // Create the build directory if it doesn't exist
@@ -32,32 +54,33 @@ int configureProject(const std::string& projectDir, const std::string& buildDir)
         std::cerr << "CMake configuration failed." << std::endl;
     }
 
+    // Build the project using make
+    std::string makeCommand = "make -C " + buildDir;
+    int makeResult = std::system(makeCommand.c_str());
+
+    if (makeResult != 0) {
+        std::cerr << "Build failed." << std::endl;
+        return makeResult;
+    }
+
+
     return result;
 }
 
 
+int runStaticAnalyzer(const std::string buildDir, const std::string executableName)
+{
+    // Run Clang Static Analyzer on the executable
+    std::string scanBuildCommand = "scan-build -o "  + buildDir + "make -C " + buildDir;;
+    int scanBuildResult = std::system(scanBuildCommand.c_str());
 
-int generateCompilationDatabase(const std::string& projectDir) {
-    std::string cmakeCommand = "cmake --build " + projectDir + " --target clean";
-    int result = std::system(cmakeCommand.c_str());
-
-    if (result == 0) {
-        std::cout << "Clean build directory successful." << std::endl;
+    if (scanBuildResult == 0) {
+        std::cout << "Clang Static Analyzer completed successfully." << std::endl;
     } else {
-        std::cerr << "Clean build directory failed." << std::endl;
-        return result;
+        std::cerr << "Clang Static Analyzer failed." << std::endl;
     }
 
-    cmakeCommand = "cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON " + projectDir;
-    result = std::system(cmakeCommand.c_str());
-
-    if (result == 0) {
-        std::cout << "Compilation database generation successful." << std::endl;
-    } else {
-        std::cerr << "Compilation database generation failed." << std::endl;
-    }
-
-    return result;
+    return scanBuildResult;
 }
 
 
@@ -77,15 +100,15 @@ int main(int argc, const char** argv) {
         return 1;
     }
 
+    // Obtain the executable name dynamically from CMakeLists.txt
+    std::string cmakeListsPath = projectDir + "/CMakeLists.txt";
+    std::string executableName = getExecutableName(cmakeListsPath);
+    
     // Step 2: Generate the compilation database
-    if (generateCompilationDatabase(projectDir) != 0) {
+    if (runStaticAnalyzer(buildDir, executableName) != 0) {
         return 1;
     }
 
-    // Step 3: Run the Clang tool on the target project
-    if (runClangTool(projectDir) != 0) {
-        return 1;
-    }
 
     return 0;
 }
