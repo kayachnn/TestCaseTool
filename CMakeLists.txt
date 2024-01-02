@@ -4,6 +4,8 @@ project(TestCaseToolApp)
 
 set(CMAKE_CXX_STANDARD 17)
 
+set(CMAKE_OSX_ARCHITECTURES arm64)
+
 # Server executable
 add_executable(TestCaseToolApp
     src/main.cpp src/ClangAnalyseTool.cpp
